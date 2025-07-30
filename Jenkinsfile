@@ -1,35 +1,36 @@
 pipeline {
-  agent any
+  agent {
+    docker {
+      image 'docker:20.10.24-dind'
+      args '-v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
   environment {
     IMAGE = "btthanhk4/skmz"
-    TAG = "${env.BUILD_NUMBER}"
+    TAG = "${BUILD_NUMBER}"
     DOCKER_IMAGE = "${IMAGE}:${TAG}"
-    REGISTRY_CREDENTIALS = 'dockerhub-creds'
+    REGISTRY_CREDENTIALS = "dockerhub-creds"
   }
 
   stages {
-    stage('Clone') {
-      steps {
-        git url: 'https://github.com/btthanhk4/skmz.git', branch: 'main'
-      }
-    }
-
     stage('Build Docker Image') {
       steps {
-        sh "docker build -t ${DOCKER_IMAGE} ."
+        script {
+          sh "docker build -t ${DOCKER_IMAGE} ."
+        }
       }
     }
 
-    stage('Push to Docker Hub') {
+    stage('Push Docker Image') {
       steps {
         withCredentials([usernamePassword(
           credentialsId: "${REGISTRY_CREDENTIALS}",
-          usernameVariable: 'DOCKER_USERNAME',
-          passwordVariable: 'DOCKER_PASSWORD'
+          usernameVariable: 'DOCKER_USER',
+          passwordVariable: 'DOCKER_PASS'
         )]) {
           sh """
-            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
             docker push ${DOCKER_IMAGE}
           """
         }
@@ -37,6 +38,7 @@ pipeline {
     }
 
     stage('Deploy to K8s') {
+      agent { label 'k8s-node' } // hoặc agent any nếu kubeconfig có sẵn
       steps {
         sh """
           mkdir -p \$HOME/.kube
@@ -49,10 +51,10 @@ pipeline {
 
   post {
     success {
-      echo '✅ CI/CD Pipeline completed successfully!'
+      echo '✅ CI/CD Pipeline done!'
     }
     failure {
-      echo '❌ CI/CD Pipeline failed!'
+      echo '❌ Pipeline failed.'
     }
   }
 }
