@@ -7,12 +7,11 @@ pipeline {
         REGISTRY_CREDENTIALS = 'dockerhub-creds'
     }
 
-    stages {
-        stage('Clone') {
-            steps {
-                git 'https://github.com/btthanhk4/skmz.git'
-            }
-        }
+    stage('Clone') {
+    steps {
+        git branch: 'main', url: 'https://github.com/btthanhk4/skmz.git'
+    }
+}
 
         stage('Build Docker Image') {
             steps {
