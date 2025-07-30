@@ -1,10 +1,5 @@
 pipeline {
-  agent {
-    docker {
-      image 'docker:20.10.24-dind'
-      args '-v /var/run/docker.sock:/var/run/docker.sock'
-    }
-  }
+  agent any
 
   environment {
     IMAGE = "btthanhk4/skmz"
@@ -16,9 +11,7 @@ pipeline {
   stages {
     stage('Build Docker Image') {
       steps {
-        script {
-          sh "docker build -t ${DOCKER_IMAGE} ."
-        }
+        sh "docker build -t ${DOCKER_IMAGE} ."
       }
     }
 
@@ -38,7 +31,6 @@ pipeline {
     }
 
     stage('Deploy to K8s') {
-      agent { label 'k8s-node' } // hoặc agent any nếu kubeconfig có sẵn
       steps {
         sh """
           mkdir -p \$HOME/.kube
