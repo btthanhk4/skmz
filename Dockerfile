@@ -1,15 +1,21 @@
-FROM node:12.14 AS JS_BUILD
+# 🔹 Build frontend bằng Node.js
+FROM node:12.14 AS js_build
+WORKDIR /webapp
 COPY webapp /webapp
-WORKDIR webapp
-RUN npm install && npm run build --prod
+RUN npm install && npm run build
 
-FROM golang:1.13.6-alpine AS GO_BUILD
-COPY server /server
+# 🔹 Build backend bằng Golang
+FROM golang:1.13.6-alpine AS go_build
 WORKDIR /server
-RUN apk add build-base
+COPY server /server
+ENV GOPROXY=direct
+RUN apk add --no-cache build-base git
+RUN go mod download
 RUN go build -o /go/bin/server
 
+# 🔹 Final stage: chạy app
 FROM alpine:3.11
-COPY --from=JS_BUILD /webapp/build* ./webapp/
-COPY --from=GO_BUILD /go/bin/server ./
-CMD ./server
+WORKDIR /app
+COPY --from=js_build /webapp/build ./webapp
+COPY --from=go_build /go/bin/server ./server
+CMD ["./server"]

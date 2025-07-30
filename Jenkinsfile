@@ -1,31 +1,41 @@
 pipeline {
-  agent any
-  environment {
-    DOCKERHUB_CREDS = credentials('dockerhub-creds')
-  }
-  stages {
-    stage('Clone') {
-      steps {
-        git 'https://github.com/btthanhk4/skmz.git'
-      }
+    agent any
+
+    environment {
+        IMAGE = "btthanhk4/skmz"
+        TAG = "${env.BUILD_NUMBER}"
+        REGISTRY_CREDENTIALS = 'dockerhub-creds'
     }
-    stage('Build') {
-      steps {
-        sh 'docker build -t btthanhk4/skmz:latest .'
-      }
+
+    stages {
+        stage('Clone') {
+            steps {
+                git 'https://github.com/btthanhk4/skmz.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh "docker build -t $IMAGE:$TAG ."
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', REGISTRY_CREDENTIALS) {
+                        sh "docker push $IMAGE:$TAG"
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                sh "kubectl apply -f k8s-deployment.yaml"
+            }
+        }
     }
-    stage('Push') {
-      steps {
-        sh '''
-          echo "$DOCKERHUB_CREDS_PSW" | docker login -u "$DOCKERHUB_CREDS_USR" --password-stdin
-          docker push btthanhk4/skmz:latest
-        '''
-      }
-    }
-    stage('Deploy to K8s') {
-      steps {
-        sh 'kubectl apply -f k8s-deployment.yaml'
-      }
-    }
-  }
 }

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: jenkins-pv
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/data/jenkins"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jenkins
+  namespace: jenkins
+spec:
+  volumeName: jenkins-pv     # ⚠ Ràng buộc trực tiếp với PV
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
